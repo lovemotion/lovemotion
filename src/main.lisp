@@ -1,6 +1,6 @@
 (defpackage #:lovemotion
   (:use #:cl)
-  (:export #:start #:stop))
+  (:export #:start #:stop #:main))
 
 (in-package #:lovemotion)
 
