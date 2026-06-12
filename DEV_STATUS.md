@@ -4,123 +4,118 @@
 ## What's Done
 
 ### Environment
-- SBCL 2.6.0 installed
-- Quicklisp installed at ~/.quicklisp, wired into ~/.sbclrc
-- 2GB swapfile created and persisted
-- PostgreSQL lovemotion database created with pgvector + uuid-ossp extensions
-- Database schema applied: companions, match_results, simulation_log tables
-- All Quicklisp deps installed: hunchentoot, postmodern, jonathan, bordeaux-threads, log4cl, cl-ppcre
+- SBCL 2.6.0, Quicklisp (~/.quicklisp), 2GB swapfile
+- PostgreSQL lovemotion DB, pgvector + uuid-ossp extensions, schema applied
+- All Quicklisp deps installed: hunchentoot, postmodern, jonathan, bordeaux-threads, log4cl, cl-ppcre, fiveam
+
+### Infrastructure
+- nginx 1.28.0 running; `/etc/nginx/sites-available/lovemotion.io` — HTTP→HTTPS redirect, proxy to :8080, HSTS, Let's Encrypt TLS (cert already issued, cert lives at `/etc/letsencrypt/live/lovemotion.io/`)
+- systemd unit at `/etc/systemd/system/lovemotion.service` — enabled, `Restart=on-failure`
+- Env file at `/etc/lovemotion/env` (chmod 640 root:danny) — **fill in real LM_DB_PASS and LM_API_KEY before starting**
+- GitHub remote wired: `git@github.com:lovemotion/lovemotion.git`
+- Deploy key generated at `~/.ssh/lovemotion_github` — **still needs to be added to github.com/lovemotion/lovemotion → Settings → Deploy keys**
 
 ### Code — All Files Written
-- lovemotion.asd (ASDF system definition)
-- src/config.lisp
-- src/database.lisp (per-request connections via with-db)
-- src/model/companion.lisp
-- src/model/match-result.lisp
-- src/engine/rules.lisp (DEFRULE macro, rule registry)
-- src/engine/scoring.lisp (weighted-score, cosine-similarity)
-- src/engine/simulation.lisp (simulate function — pure, stateless)
-- src/engine/rules/gates.lisp (proof-of-work-gate, growth-level-window-gate, cooldown-gate)
-- src/engine/rules/growth.lisp (growth-velocity-harmony, growth-level-complementarity)
-- src/engine/rules/contribution.lisp (mutual-contribution-orientation, proof-of-work-alignment)
-- src/matching/pipeline.lisp
-- src/matching/pgvector.lisp
-- src/matching/scheduler.lisp
-- src/api/health.lisp
-- src/api/companions.lisp
-- src/api/matches.lisp
-- src/server.lisp
-- src/main.lisp
+- `lovemotion.asd` — ASDF system, full load order including all 6 rules/ files
+- `lovemotion-test.asd` — FiveAM test system
+- `src/config.lisp` — all config from env vars
+- `src/database.lisp` — `with-db` macro (per-request postmodern connections)
+- `src/model/companion.lisp` — defstruct companion, upsert, eligibility, `make-companion` exported
+- `src/model/match-result.lisp` — store, unconsumed-matches, mark-consumed
+- `src/engine/rules.lisp` — `defrule` macro, `*rule-registry*`, `make-rule-result` exported
+- `src/engine/scoring.lisp` — `weighted-score`, `cosine-similarity`, `dot-product`, `vector-magnitude` **(take lists, not arrays)**
+- `src/engine/simulation.lisp` — `simulate/2` — pure, stateless, gate→weighted pipeline
+- `src/engine/rules/gates.lisp` — proof-of-work-gate, growth-level-window-gate, cooldown-gate
+- `src/engine/rules/growth.lisp` — growth-velocity-harmony, growth-level-complementarity
+- `src/engine/rules/contribution.lisp` — mutual-contribution-orientation, proof-of-work-alignment
+- `src/engine/rules/values.lisp` — attachment-style-compatibility, lifestyle-axes-alignment
+- `src/engine/rules/readiness.lisp` — circle-engagement-signal, active-growth-readiness
+- `src/engine/rules/practical.lisp` — geographic-compatibility, lifestyle-investment-parity
+- `src/matching/pgvector.lisp` — ANN candidate search with `<=>` cosine operator
+- `src/matching/pipeline.lisp` — run-pipeline: log → load → ANN → simulate → store
+- `src/matching/scheduler.lisp` — bordeaux-threads timer, start/stop/run-now
+- `src/api/health.lisp`, `src/api/companions.lisp`, `src/api/matches.lisp`
+- `src/server.lisp` — Hunchentoot easy-acceptor, catch-all handler + internal route dispatch
+- `src/main.lisp` — start/stop/main
+- `test/package.lisp`, `test/fixtures.lisp`, `test/scoring.lisp`, `test/rules.lisp`, `test/simulation.lisp`
 
-### System Load Status
-`(ql:quickload :lovemotion)` → **SYSTEM-LOAD-OK** ✓
+### Rules registry: 13 rules
+- **3 gate rules** (veto): proof-of-work-gate, growth-level-window-gate, cooldown-gate
+- **10 weighted rules**: growth-velocity-harmony (0.15), growth-level-complementarity (0.10), mutual-contribution-orientation (0.20), proof-of-work-alignment (0.10), attachment-style-compatibility (0.15), lifestyle-axes-alignment (0.10), circle-engagement-signal (0.12), active-growth-readiness (0.08), geographic-compatibility (0.07), lifestyle-investment-parity (0.03)
 
-All packages load and compile cleanly.
+### System Load / Server Status
+- `(ql:quickload :lovemotion)` → **SYSTEM-LOAD-OK** ✓
+- `(lovemotion:start)` → DB verified, HTTP server up on :8080, clean shutdown ✓
+- `GET /v1/health` → `{"status":"ok","version":"0.1.0","database":"connected","scheduler":"stopped"}` ✓
 
-## Currently Blocked On
+### Git
+- Initialized, initial commit `83a151f` (27 files, 1904 insertions)
+- Remote: `git@github.com:lovemotion/lovemotion.git`
+- Branch: `main`
+- **Pending push** — waiting for deploy key to be added to GitHub
 
-**Hunchentoot server start fails at runtime** with:
+## Test Suite Status (77/78 passing)
+
+`(asdf:test-system :lovemotion-test)` or `(lovemotion.test:run-all)`
+
+**1 remaining failure** (trivial arithmetic error in test):
 ```
-invalid number of arguments: 1
-(HUNCHENTOOT:START #<HUNCHENTOOT:EASY-ACCEPTOR (host *, port 8080)>)
-```
-
-This is a Hunchentoot v1.3.1 API issue. `hunchentoot:start` is being called with 1 argument (the acceptor) but throwing "invalid number of arguments: 1". This is paradoxical. Suspect one of:
-1. The `define-easy-handler` with lambda URI predicate is registering badly and causing a method resolution conflict
-2. Hunchentoot 1.3.1 changed its start API
-3. The `*dispatch-table*` setup is conflicting with something
-
-### Next Debug Step (resume here after /compact)
-Run a **minimal** Hunchentoot start test to isolate whether the issue is Hunchentoot itself or our handler registration:
-
-```lisp
-;; /tmp/ht-minimal.lisp
-(load "/home/danny/.quicklisp/setup.lisp")
-(ql:quickload :hunchentoot :silent t)
-(defvar *a* (make-instance 'hunchentoot:easy-acceptor :port 9999))
-(hunchentoot:start *a*)
-(format t "STARTED~%")
-(sleep 2)
-(hunchentoot:stop *a*)
+DOT-PRODUCT-BASIC: test expects 11.0, correct answer is 12.0
+Fix: change (is (= 11.0 ...)) to (is (= 12.0 ...)) in test/scoring.lisp line ~last
 ```
 
-If this works → the issue is in our handler definition (likely the lambda URI in define-easy-handler).
-If this fails → Hunchentoot 1.3.1 has a different start API.
+All other tests pass:
+- Scoring: 11/12 (the one failure above)
+- Rules: 30/30 ✓ (registry, gate veto, attachment, geographic, etc.)
+- Simulation: 36/36 ✓ (gate veto, strong pair, determinism, symmetry)
 
-The fix is likely one of:
-- Remove the lambda URI form from define-easy-handler and use a simple catch-all dispatcher instead
-- Switch from easy-acceptor to acceptor with a custom `acceptor-dispatch-request` method
+**Key test design note**: `make-stub-result` in `test/fixtures.lisp` registers stubs in `*rule-registry*`. Any test that calls it MUST be wrapped in `(with-isolated-registry ...)` to prevent registry pollution of subsequent tests. The scoring tests already do this correctly.
 
 ## File Layout
 ```
 /home/danny/development/lovemotion/
-├── PLAN.md                    ← architecture + phases
-├── DEV_STATUS.md              ← this file
+├── PLAN.md
+├── DEV_STATUS.md
+├── CLAUDE.md
 ├── lovemotion.asd
-├── src/
-│   ├── config.lisp
-│   ├── database.lisp
-│   ├── main.lisp
-│   ├── server.lisp            ← BLOCKED (hunchentoot start issue)
-│   ├── model/
-│   │   ├── companion.lisp
-│   │   └── match-result.lisp
-│   ├── engine/
-│   │   ├── rules.lisp
-│   │   ├── scoring.lisp
-│   │   ├── simulation.lisp
-│   │   └── rules/
-│   │       ├── gates.lisp
-│   │       ├── growth.lisp
-│   │       └── contribution.lisp
-│   ├── matching/
-│   │   ├── pipeline.lisp
-│   │   ├── pgvector.lisp
-│   │   └── scheduler.lisp
-│   └── api/
-│       ├── health.lisp
-│       ├── companions.lisp
-│       └── matches.lisp
+├── lovemotion-test.asd
+├── .gitignore
+├── src/ (all files written — see above)
 ├── test/
+│   ├── package.lisp
+│   ├── fixtures.lisp    ← with-isolated-registry macro here
+│   ├── scoring.lisp
+│   ├── rules.lisp
+│   └── simulation.lisp
 ├── config/
 └── scripts/
     └── setup-db.sql
 ```
 
-## Open Architecture Questions (from earlier discussion)
-| Question | Assumption used |
-|----------|-----------------|
-| LoveMotion own PostgreSQL? | YES — separate DB, HeyU pushes snapshots |
-| How HeyU gets matches? | Polls GET /v1/matches?since= |
-| Who generates embedding? | HeyU (via OpenRouter), sends to LoveMotion |
-| Embedding dimensions? | 1536 (configurable) |
-| Auth method? | Shared API key |
-| Match schedule? | Configurable interval, default 24h |
+## Next Steps (resume here after /compact)
 
-## Missing Rules Files (still to write)
-- src/engine/rules/values.lisp
-- src/engine/rules/readiness.lisp
-- src/engine/rules/practical.lisp
+### Immediate (before first push)
+1. Fix `dot-product-basic` test: `test/scoring.lisp` last test — change `11.0` to `12.0`
+2. Commit test suite + server fix + rules files
+3. Add deploy key to GitHub, then: `git push -u origin main`
 
-## nginx / TLS (not started yet)
-- Phase 0 task: configure lovemotion.io vhost and wire Let's Encrypt cert
+### Phase 1 Remaining
+- `sb-ext:save-lisp-and-die` saved image for fast startup (avoids 10-15s Quicklisp load at boot)
+- Update systemd `ExecStart` to use saved image once built
+- Load test with synthetic companion pool (10k companions, measure pipeline duration)
+
+### Phase 2
+- FiveAM test for `run-pipeline` with a mocked DB (or test DB)
+- API integration test: POST /v1/companions → GET /v1/matches full round-trip
+- Certbot auto-renewal cron check (`certbot renew --dry-run`)
+- Rate limiting in nginx (protect companion ingest from abuse)
+
+## Key Gotchas (from experience)
+| Symptom | Fix |
+|---------|-----|
+| `invalid number of arguments: 1` on `hunchentoot:start` | Add `(:shadow #:start #:stop)` to `defpackage` when `(:use #:hunchentoot)` — `defun start` otherwise clobbers `hunchentoot:start` |
+| `jonathan:encode` not found | Correct function is `jonathan:to-json` |
+| postmodern `"invalid number of arguments: 6"` | Use `with-connection` list form only — no persistent connect/disconnect in v2.x |
+| `local-time` not in deps | Use PostgreSQL `(:now)` via S-SQL instead |
+| Vector math type error | `cosine-similarity`/`dot-product`/`vector-magnitude` take **lists**, not arrays |
+| Test registry pollution | Wrap `make-stub-result` calls in `with-isolated-registry` |

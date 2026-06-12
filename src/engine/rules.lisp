@@ -1,10 +1,11 @@
 (defpackage #:lovemotion.engine.rules
   (:use #:cl)
   (:import-from #:lovemotion.model.companion #:companion)
-  (:export #:rule #:rule-id #:rule-category #:rule-weight #:rule-veto-threshold
+  (:export #:rule #:make-rule #:rule-id #:rule-category #:rule-weight #:rule-veto-threshold
            #:rule-description #:rule-evaluate
            #:defrule #:*rule-registry* #:active-rules #:gate-rules #:weighted-rules
-           #:evaluate-rule #:rule-result #:rule-result-score #:rule-result-explanation
+           #:evaluate-rule #:rule-result #:make-rule-result
+           #:rule-result-score #:rule-result-explanation
            #:rule-result-veto-p #:rule-result-rule-id #:rule-result-category
            #:find-rule-by-id))
 
