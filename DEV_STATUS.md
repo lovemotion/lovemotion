@@ -46,13 +46,15 @@
 ### System Load / Server Status
 - `(ql:quickload :lovemotion)` → **SYSTEM-LOAD-OK** ✓
 - `(lovemotion:start)` → DB verified, HTTP server up on :8080, clean shutdown ✓
-- `GET /v1/health` → `{"status":"ok","version":"0.1.0","database":"connected","scheduler":"stopped"}` ✓
+- `GET /v1/health` → `{"status":"ok","version":"0.1.0","database":"connected","scheduler":"running"}` ✓
+- `GET /v1/matches` (no token) → 401 ✓
+- `GET /v1/matches` (Bearer token) → 200 ✓
+- **systemd service active (running)** — `sudo systemctl status lovemotion`
+- API key in `/etc/lovemotion/env` as `LM_API_KEY`
 
 ### Git
-- Initialized, initial commit `83a151f` (27 files, 1904 insertions)
-- Remote: `git@github.com:lovemotion/lovemotion.git`
-- Branch: `main`
-- **Pending push** — waiting for deploy key to be added to GitHub
+- 4 commits on `main`, pushed to `git@github.com:lovemotion/lovemotion.git`
+- Deploy key at `~/.ssh/lovemotion_github` (write access confirmed)
 
 ## Test Suite Status (77/78 passing)
 
@@ -92,12 +94,7 @@ All other tests pass:
     └── setup-db.sql
 ```
 
-## Next Steps (resume here after /compact)
-
-### Immediate (before first push)
-1. Fix `dot-product-basic` test: `test/scoring.lisp` last test — change `11.0` to `12.0`
-2. Commit test suite + server fix + rules files
-3. Add deploy key to GitHub, then: `git push -u origin main`
+## Next Steps
 
 ### Phase 1 Remaining
 - `sb-ext:save-lisp-and-die` saved image for fast startup (avoids 10-15s Quicklisp load at boot)
