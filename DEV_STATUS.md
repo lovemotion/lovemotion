@@ -96,10 +96,13 @@ All other tests pass:
 
 ## Next Steps
 
-### Phase 1 Remaining
-- `sb-ext:save-lisp-and-die` saved image for fast startup (avoids 10-15s Quicklisp load at boot)
-- Update systemd `ExecStart` to use saved image once built
-- Load test with synthetic companion pool (10k companions, measure pipeline duration)
+### Phase 1 Complete ✓
+- Saved image built (`bin/lovemotion`, 18MB), systemd updated — startup ~3s vs ~15s
+- Two runtime bugs fixed: pgvector param passing, postmodern `:NULL` coercion in `row->companion`
+- Load test run: 10k companions → 265,682 pairs → 108 matches in **19 minutes**
+  - Bottleneck: 10k sequential ANN queries to Postgres (one per companion)
+  - Decision: acceptable for now — real eligible pool will be much smaller than 10k
+  - Future option if needed: batch ANN lookups or cap eligible pool per run
 
 ### Phase 2
 - FiveAM test for `run-pipeline` with a mocked DB (or test DB)
