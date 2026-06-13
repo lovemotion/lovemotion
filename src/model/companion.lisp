@@ -127,17 +127,18 @@
     :where (:= 'companion_id companion-id))))
 
 (defun row->companion (id ref level pow contribution attachment velocity region eligible cooldown snapshot created updated)
-  (make-companion
-   :id id
-   :heyu-user-ref ref
-   :growth-level level
-   :proof-of-work-score (or pow 0.0)
-   :contribution-score (or contribution 0.0)
-   :attachment-style attachment
-   :growth-velocity (or velocity 0.0)
-   :geographic-region region
-   :eligible-for-matching eligible
-   :match-cooldown-until cooldown
-   :snapshot-at snapshot
-   :created-at created
-   :updated-at updated))
+  (flet ((nn (v) (if (eq v :null) nil v)))  ; postmodern returns :NULL for SQL NULL
+    (make-companion
+     :id id
+     :heyu-user-ref ref
+     :growth-level level
+     :proof-of-work-score (or (nn pow) 0.0)
+     :contribution-score (or (nn contribution) 0.0)
+     :attachment-style (nn attachment)
+     :growth-velocity (or (nn velocity) 0.0)
+     :geographic-region (nn region)
+     :eligible-for-matching eligible
+     :match-cooldown-until (nn cooldown)
+     :snapshot-at (nn snapshot)
+     :created-at (nn created)
+     :updated-at (nn updated))))

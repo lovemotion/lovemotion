@@ -16,26 +16,24 @@
   (let* ((id    (companion-id companion))
          (level (companion-growth-level companion))
          (rows  (postmodern:query
-                 ;; Raw SQL for pgvector operator <=> (cosine distance)
-                 ;; S-SQL doesn't support custom operators cleanly
-                 (format nil
-                   "SELECT companion_id, heyu_user_ref, growth_level,
-                           proof_of_work_score, contribution_score,
-                           attachment_style, growth_velocity, geographic_region,
-                           eligible_for_matching, match_cooldown_until,
-                           snapshot_at, created_at, updated_at
-                    FROM companions
-                    WHERE companion_id != $1
-                      AND eligible_for_matching = TRUE
-                      AND (match_cooldown_until IS NULL OR match_cooldown_until < NOW())
-                      AND ABS(growth_level - $2) <= 2
-                      AND embedding IS NOT NULL
-                    ORDER BY embedding <=> (
-                      SELECT embedding FROM companions WHERE companion_id = $1
-                    )
-                    LIMIT $3")
-                 :rows
-                 :parameters (list id level *ann-candidate-count*))))
+                 ;; Raw SQL: pgvector <=> (cosine distance); S-SQL lacks custom-operator support
+                 "SELECT companion_id, heyu_user_ref, growth_level,
+                         proof_of_work_score, contribution_score,
+                         attachment_style, growth_velocity, geographic_region,
+                         eligible_for_matching, match_cooldown_until,
+                         snapshot_at, created_at, updated_at
+                  FROM companions
+                  WHERE companion_id != $1
+                    AND eligible_for_matching = TRUE
+                    AND (match_cooldown_until IS NULL OR match_cooldown_until < NOW())
+                    AND ABS(growth_level - $2) <= 2
+                    AND embedding IS NOT NULL
+                  ORDER BY embedding <=> (
+                    SELECT embedding FROM companions WHERE companion_id = $1
+                  )
+                  LIMIT $3"
+                 id level *ann-candidate-count*
+                 :rows)))
     (mapcar (lambda (row)
               (apply #'lovemotion.model.companion::row->companion row))
             rows)))
