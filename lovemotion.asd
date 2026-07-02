@@ -1,39 +1,27 @@
+;;;; lovemotion.asd
+;;;;
+;;;; The :lovemotion system is the pure engine — no dependencies, no I/O.
+;;;; Adapters (Postgres, courier) are separate systems layered on top so
+;;;; the core stays loadable and testable anywhere SBCL runs.
+
 (defsystem "lovemotion"
-  :description "Companion-to-Companion Pre-Connection Simulation Engine"
-  :version "0.1.0"
+  :description "LoveMotion v0 — pure in-memory matching engine: twin-set -> match payload."
   :author "Danny Simon"
   :license "Apache-2.0"
-  :depends-on ("hunchentoot"
-               "postmodern"
-               "jonathan"
-               "bordeaux-threads"
-               "log4cl"
-               "cl-ppcre"
-               "uiop")
-  :components ((:file "src/config")
-               (:file "src/database"   :depends-on ("src/config"))
-               (:file "src/model/companion"  :depends-on ("src/database"))
-               (:file "src/model/match-result" :depends-on ("src/database" "src/model/companion"))
-               (:file "src/engine/rules"      :depends-on ("src/model/companion"))
-               (:file "src/engine/scoring"    :depends-on ("src/engine/rules"))
-               (:file "src/engine/rules/gates"        :depends-on ("src/engine/rules" "src/model/companion"))
-               (:file "src/engine/rules/growth"       :depends-on ("src/engine/rules" "src/engine/scoring" "src/model/companion"))
-               (:file "src/engine/rules/contribution" :depends-on ("src/engine/rules" "src/model/companion"))
-               (:file "src/engine/rules/values"       :depends-on ("src/engine/rules" "src/model/companion"))
-               (:file "src/engine/rules/readiness"    :depends-on ("src/engine/rules" "src/model/companion"))
-               (:file "src/engine/rules/practical"    :depends-on ("src/engine/rules" "src/model/companion"))
-               (:file "src/engine/simulation" :depends-on ("src/engine/rules" "src/engine/scoring"
-                                                            "src/engine/rules/gates"
-                                                            "src/engine/rules/growth"
-                                                            "src/engine/rules/contribution"
-                                                            "src/engine/rules/values"
-                                                            "src/engine/rules/readiness"
-                                                            "src/engine/rules/practical"))
-               (:file "src/matching/pgvector" :depends-on ("src/database" "src/model/companion"))
-               (:file "src/matching/pipeline" :depends-on ("src/engine/simulation" "src/matching/pgvector" "src/model/match-result"))
-               (:file "src/matching/scheduler" :depends-on ("src/matching/pipeline"))
-               (:file "src/api/health"        :depends-on ("src/database" "src/matching/scheduler"))
-               (:file "src/api/companions"    :depends-on ("src/model/companion"))
-               (:file "src/api/matches"       :depends-on ("src/model/match-result"))
-               (:file "src/server"            :depends-on ("src/api/health" "src/api/companions" "src/api/matches"))
-               (:file "src/main"              :depends-on ("src/server" "src/matching/scheduler"))))
+  :version "0.1.0"
+  :serial t
+  :components ((:module "src"
+                :serial t
+                :components ((:file "package")
+                             (:file "engine")
+                             (:file "fixtures"))))
+  :in-order-to ((test-op (test-op "lovemotion/test"))))
+
+(defsystem "lovemotion/test"
+  :description "Golden test: one equal over one blessed payload."
+  :depends-on ("lovemotion")
+  :components ((:module "test"
+                :components ((:file "golden"))))
+  :perform (test-op (o c)
+             (unless (symbol-call :lovemotion-test :golden-test)
+               (error "GOLDEN-TEST-FAILED — engine payload no longer matches the blessed payload in test/golden.lisp"))))

@@ -1,95 +1,93 @@
 # LoveMotion — Claude Code Instructions
 
 ## What This Is
-LoveMotion.io is a **Companion-to-Companion Pre-Connection Simulation Engine** written in Common Lisp (SBCL). It is a headless matching microservice (Apache 2.0) called by HeyU.com. It never holds PII — users are opaque `heyu_user_ref` tokens. Matching is batch-scheduled; HeyU polls for results.
+LoveMotion is a standalone Common Lisp (SBCL) matching engine, Apache 2.0, air-gapped from HeyU (Elixir/Phoenix): no shared DB, no shared code. Only derived **digital twins** cross the boundary, keyed by opaque twin IDs (`tw_...`), via a DigitalOcean Spaces courier as an off-hours batch. **No PII anywhere in this system** — identity lives in a separate locked-down third system nothing here holds a foreign key into.
 
-## Language & Runtime
-- **Common Lisp / SBCL 2.6.0** — write idiomatic CL, not "Lisp-flavored Python"
-- **Quicklisp** at `~/.quicklisp` — `(ql:quickload :lovemotion)` to load the full system
-- **ASDF** system definition in `lovemotion.asd`
-- All CL package symbols must be explicitly managed; prefer `(:use #:cl)` + qualified references over deep `:use` chains to avoid symbol clobbering (see [Known Footgun](#known-footgun))
+The engine is one deterministic pure function: twin-set → match-set. Postgres and the courier are adapters underneath fetch/persist seams; **domain code never knows about them**.
 
-## Project Layout
+Read `Handoff.md` for the full design rationale. This file is the working summary.
+
+## The Pipeline (locked 2026-07-01)
 ```
+twins in (courier)
+  → eligibility gate         (work-ethic floor, confidence-guarded)
+  → pair dealbreaker filters (family plans, pet allergy; substances + sexual
+                              hard limits TODO, same predicate shape)
+  → 7-axis scoring           (scalars, matrices, tag-set)
+  → weighted composite       (confidence discounts weight: min(confA, confB))
+  → findings generation      (min 1, max 4 per match — never blank)
+  → versioned payload out    (courier)
+```
+Each stage narrows or annotates; no stage reaches backward.
+
+## Layout
+```
+lovemotion.asd       — :lovemotion (pure core, zero deps) + :lovemotion/test
 src/
-  config.lisp           — env-var config, all *global-params*
-  database.lisp         — with-db macro (per-request postmodern connections)
-  model/
-    companion.lisp      — defstruct companion, upsert, eligibility query
-    match-result.lisp   — store, unconsumed-matches, mark-consumed
-  engine/
-    rules.lisp          — defrule macro, *rule-registry*, rule/rule-result structs
-    scoring.lisp        — weighted-score, cosine-similarity
-    simulation.lisp     — simulate/2 — pure, stateless, gate→weighted pipeline
-    rules/
-      gates.lisp        — proof-of-work-gate, growth-level-window-gate, cooldown-gate
-      growth.lisp       — growth-velocity-harmony, growth-level-complementarity
-      contribution.lisp — mutual-contribution-orientation, proof-of-work-alignment
-  matching/
-    pgvector.lisp       — find-candidates using <=> cosine ANN
-    pipeline.lisp       — run-pipeline (logs run, loads companions, runs simulation, stores ready)
-    scheduler.lisp      — bordeaux-threads timer, start-scheduler/stop-scheduler/run-now
-  api/
-    health.lisp         — GET /v1/health
-    companions.lisp     — POST/DELETE /v1/companions
-    matches.lisp        — GET /v1/matches
-  server.lisp           — Hunchentoot easy-acceptor, single catch-all handler, route fn
-  main.lisp             — start/stop/main entry points
+  package.lisp       — defpackage + boundary-contract header
+  engine.lisp        — the whole pipeline: structs, config, axes, matrices,
+                       gate, dealbreakers, scoring, findings, run-matching
+  fixtures.lisp      — the golden twins (alpha/bravo/charlie), smoke-test
+test/
+  golden.lisp        — blessed payload + golden-test (plain equal, no framework)
+FINDINGS.md          — finding-code vocabulary shared with HeyU
+Handoff.md           — design handoff: rationale, schema design, rejected list
 ```
 
-## Key Libs & Their Quirks
-| Lib | Notes |
-|-----|-------|
-| hunchentoot 1.3.1 | `easy-acceptor`; single catch-all handler via `define-easy-handler`; explicit `(:shadow #:start #:stop)` required when using `(:use #:hunchentoot)` |
-| postmodern | `with-connection` per-request only (pool API changed in v2.x); S-SQL for queries |
-| jonathan | `jonathan:to-json` (NOT `jonathan:encode`); `jonathan:parse` |
-| bordeaux-threads | For scheduler timer loop |
-| log4cl | `(log:info ...)`, `(log:error ...)` |
-| cl-ppcre | Regex URI matching |
-
-## Database
-- PostgreSQL 18, pgvector 0.8.1, uuid-ossp
-- DB name/user/pass: `lovemotion` (dev); configure via env vars in prod
-- Schema in `scripts/setup-db.sql`
-- pgvector: `embedding vector(1536)`, ivfflat index, `<=>` operator for cosine ANN
-- `(lovemotion.database:check-connection)` → T or NIL
-
-## Environment Variables
-```
-LM_DB_HOST      LM_DB_PORT      LM_DB_NAME
-LM_DB_USER      LM_DB_PASS      LM_HTTP_PORT
-LM_API_KEY      LM_LOG_LEVEL
-```
-
-## Running Locally
+## Load & Test
 ```bash
-# Load and start (dev — skips DB check)
+# Load
 sbcl --load ~/.quicklisp/setup.lisp \
      --eval "(push #p\"/home/danny/development/lovemotion/\" asdf:*central-registry*)" \
-     --eval "(ql:quickload :lovemotion)" \
-     --eval "(lovemotion:start)"
+     --eval "(ql:quickload :lovemotion)"
+
+# Golden test (the CI step)
+sbcl --non-interactive --load ~/.quicklisp/setup.lisp \
+     --eval "(push #p\"/home/danny/development/lovemotion/\" asdf:*central-registry*)" \
+     --eval "(asdf:test-system :lovemotion)"
 ```
+The golden test asserts `(lovemotion:run-matching lovemotion:*fixture-twins*)` is `equal` to the blessed payload in `test/golden.lisp`. Any engine behavior change must either preserve it bit-for-bit or **consciously re-bless**: run `(lovemotion:smoke-test)`, verify the new payload by hand, paste it into `+golden-payload+`, and say so in the commit message.
 
-## Auth
-All `/v1/*` endpoints require `Authorization: Bearer <LM_API_KEY>`. `/v1/health` is public. `/admin/*` restricted to 127.0.0.1.
+## The Seven Axes (love languages was cut — do not re-add)
+| axis-id | value kind | scoring | weight |
+|---------|-----------|---------|--------|
+| `:chronotype` | scalar 0–1 | 1 − \|a−b\| | 1.0 |
+| `:home-vs-outside` | scalar 0–1 | 1 − \|a−b\| | 1.0 |
+| `:conflict-style` | categorical | matrix v0 | 1.5 |
+| `:attachment` | categorical | matrix v0 | 1.5 |
+| `:ambition` | scalar 0–1 | scalar-floor (< 0.30 → ×0.5) | 1.0 |
+| `:humor` | tag set | Jaccard — NOT embeddings | 1.0 |
+| `:curiosity` | scalar 0–1 | 1 − \|a−b\| | 1.0 |
 
-## Rules Engine
-`defrule` macro in `engine/rules.lisp`. Two categories:
-- **Gates** (`:category :gate`) — veto on failure, short-circuit simulation
-- **Weighted** (`:category :weighted`, `:weight float`) — contribute to final score
+`:cross` scoring exists in the dispatcher, deliberately errors — no live axis until one earns it (candidate: emotional expressiveness give/need, combined with MIN not average).
 
-Introduction threshold: `*introduction-threshold*` = 0.72 (configurable).
+## Iron Rules
+- **Confidence must never silently default to 1.0.** Fixtures are 1.0 by design; real twins never are.
+- **Matrices are immutable**: tuning = new version + flip active pointer, never edit. Only the ORDERING of cells is load-bearing at MVP scale; Danny has ordinal-level veto.
+- **Eligibility is computed per run, never stored on the twin.** `:unassessed` (missing value or confidence < 0.70) is NEVER `:ineligible` — no gating on noise.
+- **Per-axis scores never cross the boundary** — findings only (see FINDINGS.md).
+- **Every match ships ≥1 finding** (universal maintenance rule). A blank schedule is a lie.
+- **Pair ordering** (`twin_a < twin_b` by `string<`) enforced in Lisp at the single write site + DB CHECK as tripwire. No trigger auto-swap.
+- **LoveMotion never writes prose and never calls LLMs.** HeyU/Lexi owns all prose.
 
-## Known Footgun
-`(:use #:hunchentoot)` imports `hunchentoot:start` and `hunchentoot:stop` into the using package. `defun start` then calls `intern` which returns the *inherited* symbol — so you're redefining `hunchentoot:start` itself. Always add `(:shadow #:start #:stop)` to the defpackage when using hunchentoot and defining functions of the same name.
+## Rejected — do not re-propose
+Prolog/rules engine; embedding categoricals; pgvector in the MVP loop; BEFORE INSERT pair-swap trigger; S3 ETag matrix integrity; storing eligibility on twins; love-languages axis; LoveMotion calling LLMs.
 
-## Still TODO (Phase 0/1)
-- `src/engine/rules/values.lisp` — shared-values rule
-- `src/engine/rules/readiness.lisp` — attachment-style and readiness rules
-- `src/engine/rules/practical.lisp` — geographic + lifestyle axes rules
-- Wire those rule files into `lovemotion.asd`
-- FiveAM test suite in `test/`
-- nginx vhost + Let's Encrypt for lovemotion.io
-- systemd unit
-- `sb-ext:save-lisp-and-die` saved image for fast startup
-- `git init` + push to github.com/lovemotion
+## Postgres (adapter — schema design in Handoff.md)
+- `axis_values` is **append-only**: PK (twin_id, axis_id, observed_at), never UPDATE. Runs read latest-per-(twin,axis) as of `runs.started_at` via `DISTINCT ON`.
+- Typed-value trio (scalar/categorical/tagset) with `CHECK num_nonnulls(...) = 1`. Normalized, NOT JSONB.
+- `provenance` ∈ observed | self-reported | inferred — load-bearing (involuntary-channels thesis).
+- Pipeline wraps snapshot+read in one REPEATABLE READ transaction.
+- `runs` carries `config_snapshot` + `matrix_versions` JSONB; `run_twins` freezes the pool — every historical run bit-for-bit replayable.
+
+## History
+The previous architecture (13-rule engine, pgvector ANN, hunchentoot HTTP API) lives on branch `archive/rules-engine` and still runs on the droplet (systemd `lovemotion`, nginx, lovemotion.io TLS) until v0's adapters replace it. Don't build on it.
+
+## Next Actions (owner-approved order)
+1. ~~Golden test~~ ✓  2. ~~ASDF/repo structure + FINDINGS.md~~ ✓
+3. Postgres adapter: DDL, as-of DISTINCT ON fetch, run_twins insert, results writer, REPEATABLE READ
+4. Courier adapter (Spaces): MessagePack serialization, transport deliberately last
+5. v2 pile (do NOT build now): hysteresis re-admit, Life Force composite, directional curiosity, `:cross` axis, axis-pair findings
+
+## Working Style
+Danny approves at the ordinal/architectural level; decimals live in config + literature. Propose concrete strawmen for veto, not open questions. Terse colloquial messages are normal. Leave state written down so no session re-derives.
