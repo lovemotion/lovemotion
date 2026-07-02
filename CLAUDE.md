@@ -25,6 +25,9 @@ src/
       gates.lisp        — proof-of-work-gate, growth-level-window-gate, cooldown-gate
       growth.lisp       — growth-velocity-harmony, growth-level-complementarity
       contribution.lisp — mutual-contribution-orientation, proof-of-work-alignment
+      values.lisp       — attachment-style-compatibility, lifestyle-axes-alignment
+      readiness.lisp    — circle-engagement-signal, active-growth-readiness
+      practical.lisp    — geographic-compatibility, lifestyle-investment-parity
   matching/
     pgvector.lisp       — find-candidates using <=> cosine ANN
     pipeline.lisp       — run-pipeline (logs run, loads companions, runs simulation, stores ready)
@@ -35,6 +38,12 @@ src/
     matches.lisp        — GET /v1/matches
   server.lisp           — Hunchentoot easy-acceptor, single catch-all handler, route fn
   main.lisp             — start/stop/main entry points
+test/
+  package.lisp          — defpackage, def-suite :lovemotion, run-all
+  fixtures.lisp         — make-test-companion, companion-a/b, with-isolated-registry
+  scoring.lisp          — weighted-score and vector math tests
+  rules.lisp            — registry, gate veto, attachment, geographic tests
+  simulation.lisp       — end-to-end simulate/2 tests (determinism, symmetry, veto)
 ```
 
 ## Key Libs & Their Quirks
@@ -61,13 +70,27 @@ LM_DB_USER      LM_DB_PASS      LM_HTTP_PORT
 LM_API_KEY      LM_LOG_LEVEL
 ```
 
-## Running Locally
+## Running
+
 ```bash
-# Load and start (dev — skips DB check)
+# Production (systemd — uses saved image, ~272ms startup)
+sudo systemctl restart lovemotion
+sudo journalctl -u lovemotion -f
+
+# Dev (Quicklisp load — ~15s startup, no DB required)
 sbcl --load ~/.quicklisp/setup.lisp \
      --eval "(push #p\"/home/danny/development/lovemotion/\" asdf:*central-registry*)" \
      --eval "(ql:quickload :lovemotion)" \
      --eval "(lovemotion:start)"
+
+# Rebuild saved image after source changes
+bash scripts/build-image.sh   # outputs bin/lovemotion (18M), then restart systemd
+
+# Run tests
+sbcl --load ~/.quicklisp/setup.lisp \
+     --eval "(push #p\"/home/danny/development/lovemotion/\" asdf:*central-registry*)" \
+     --eval "(asdf:test-system :lovemotion-test)" \
+     --eval "(sb-ext:exit)"
 ```
 
 ## Auth
@@ -80,16 +103,36 @@ All `/v1/*` endpoints require `Authorization: Bearer <LM_API_KEY>`. `/v1/health`
 
 Introduction threshold: `*introduction-threshold*` = 0.72 (configurable).
 
+13 rules total — 3 gate + 10 weighted:
+
+| Rule | Category | Weight |
+|------|----------|--------|
+| proof-of-work-gate | gate | — |
+| growth-level-window-gate | gate | — |
+| cooldown-gate | gate | — |
+| mutual-contribution-orientation | weighted | 0.20 |
+| growth-velocity-harmony | weighted | 0.15 |
+| attachment-style-compatibility | weighted | 0.15 |
+| circle-engagement-signal | weighted | 0.12 |
+| growth-level-complementarity | weighted | 0.10 |
+| proof-of-work-alignment | weighted | 0.10 |
+| lifestyle-axes-alignment | weighted | 0.10 |
+| active-growth-readiness | weighted | 0.08 |
+| geographic-compatibility | weighted | 0.07 |
+| lifestyle-investment-parity | weighted | 0.03 |
+
 ## Known Footgun
 `(:use #:hunchentoot)` imports `hunchentoot:start` and `hunchentoot:stop` into the using package. `defun start` then calls `intern` which returns the *inherited* symbol — so you're redefining `hunchentoot:start` itself. Always add `(:shadow #:start #:stop)` to the defpackage when using hunchentoot and defining functions of the same name.
 
-## Still TODO (Phase 0/1)
-- `src/engine/rules/values.lisp` — shared-values rule
-- `src/engine/rules/readiness.lisp` — attachment-style and readiness rules
-- `src/engine/rules/practical.lisp` — geographic + lifestyle axes rules
-- Wire those rule files into `lovemotion.asd`
-- FiveAM test suite in `test/`
-- nginx vhost + Let's Encrypt for lovemotion.io
-- systemd unit
-- `sb-ext:save-lisp-and-die` saved image for fast startup
-- `git init` + push to github.com/lovemotion
+## Deployment (prod server)
+- nginx 1.28.0: `/etc/nginx/sites-available/lovemotion.io` — HTTP→HTTPS redirect, proxy to :8080, HSTS, Let's Encrypt TLS
+- systemd: `/etc/systemd/system/lovemotion.service` — enabled, `Restart=on-failure`, env from `/etc/lovemotion/env`
+- Saved image: `bin/lovemotion` (18M compressed, ~272ms startup) — rebuild with `scripts/build-image.sh`
+- GitHub: `git@github.com:lovemotion/lovemotion.git`
+
+## Still TODO (Phase 2)
+- Load test with synthetic companion pool (`scripts/load-test.sh`)
+- FiveAM test for `run-pipeline` with a test DB
+- API integration test: POST /v1/companions → GET /v1/matches round-trip
+- `certbot renew --dry-run` — verify auto-renewal
+- Rate limiting in nginx (protect companion ingest)
