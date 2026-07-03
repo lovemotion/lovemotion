@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: lovemotion
+          POSTGRES_PASSWORD: lovemotion
+          POSTGRES_DB: lovemotion_v0
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lovemotion"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      LM_DB_HOST: localhost
+      LM_DB_PORT: "5432"
+      LM_DB_NAME: lovemotion_v0
+      LM_DB_USER: lovemotion
+      LM_DB_PASS: lovemotion
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL
+        run: sudo apt-get update && sudo apt-get install -y sbcl
+
+      - name: Cache Quicklisp
+        uses: actions/cache@v4
+        with:
+          path: ~/quicklisp
+          key: quicklisp-${{ runner.os }}-${{ hashFiles('lovemotion.asd') }}
+          restore-keys: quicklisp-${{ runner.os }}-
+
+      - name: Install Quicklisp
+        run: |
+          if [ ! -f ~/quicklisp/setup.lisp ]; then
+            curl -sO https://beta.quicklisp.org/quicklisp.lisp
+            sbcl --non-interactive --load quicklisp.lisp \
+                 --eval '(quicklisp-quickstart:install)'
+          fi
+
+      - name: Apply schema and seed
+        run: |
+          PGPASSWORD=lovemotion psql -h localhost -U lovemotion -d lovemotion_v0 \
+            -v ON_ERROR_STOP=1 -f scripts/schema.sql -f scripts/seed-v0.sql
+
+      - name: Golden tests (pure engine)
+        run: |
+          sbcl --non-interactive --load ~/quicklisp/setup.lisp \
+            --eval '(push (uiop:getcwd) asdf:*central-registry*)' \
+            --eval '(ql:quickload :lovemotion :silent t)' \
+            --eval '(asdf:test-system :lovemotion)'
+
+      - name: Courier round-trip
+        run: |
+          sbcl --non-interactive --load ~/quicklisp/setup.lisp \
+            --eval '(push (uiop:getcwd) asdf:*central-registry*)' \
+            --eval '(ql:quickload :lovemotion/courier-test :silent t)' \
+            --eval '(asdf:test-system :lovemotion/courier)'
+
+      - name: DB round-trip
+        run: |
+          sbcl --non-interactive --load ~/quicklisp/setup.lisp \
+            --eval '(push (uiop:getcwd) asdf:*central-registry*)' \
+            --eval '(ql:quickload :lovemotion/db-test :silent t)' \
+            --eval '(asdf:test-system :lovemotion/db-test)'
