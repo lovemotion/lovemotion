@@ -61,6 +61,16 @@ The golden test asserts `(lovemotion:run-matching lovemotion:*fixture-twins*)` i
 
 `:cross` scoring exists in the dispatcher, deliberately errors — no live axis until one earns it (candidate: emotional expressiveness give/need, combined with MIN not average).
 
+## Dealbreaker Axes (stage 2 — vetoes, never scored)
+| axis-id | values | clash rule |
+|---------|--------|-----------|
+| `:family-plans` | `:yes :no :open` | hard yes × hard no; `:open` collides with neither |
+| `:pet-allergy` / `:must-have-pet` | boolean | allergy × must-have, both directions |
+| `:substance-use` / `:substance-boundary` | use `:none :social :regular`; boundary `:none-acceptable :social-ok :no-limit` | one twin's use exceeds the other's stated boundary, both directions |
+| `:sexual-requirements` / `:sexual-limits` | opaque tag sets — engine does set math only, HeyU owns tag meaning | a requirement appears on the other's hard-limit list, both directions |
+
+Missing data on either side never vetoes (same no-gating-on-noise spirit as the eligibility gate).
+
 ## Iron Rules
 - **Confidence must never silently default to 1.0.** Fixtures are 1.0 by design; real twins never are.
 - **Matrices are immutable**: tuning = new version + flip active pointer, never edit. Only the ORDERING of cells is load-bearing at MVP scale; Danny has ordinal-level veto.

@@ -41,6 +41,16 @@ from the ground up on 2026-07-01/02.
   `write-payload-file` for local bytes. Round-trip test field-by-field
   against golden values (`(asdf:test-system :lovemotion/courier)`)
 
+- **Dealbreaker stubs closed** (substances + sexual hard limits, same
+  predicate shape): `:substance-use`/`:substance-boundary` rank clash and
+  `:sexual-requirements`/`:sexual-limits` opaque-tag intersection, both
+  directions, missing data never vetoes. Golden payload #3
+  (`*fixture-twins-dealbreakers*`: 6 pairs, 4 vetoes, 2 matches at
+  0.9625) blessed in `test/golden.lisp`. Stage 2 is contract-complete.
+- **GitHub Actions CI** (`.github/workflows/ci.yml`): golden + courier +
+  DB round-trip on every push/PR, Postgres 18 service container, cached
+  Quicklisp. First run green.
+
 ## Next (owner-approved order — see Handoff.md)
 
 4. **Courier adapter, second half** — DO Spaces transport (needs bucket +

@@ -22,6 +22,7 @@
            #:fixture-twin-full
            #:*fixture-twins*
            #:*fixture-twins-mixed*
+           #:*fixture-twins-dealbreakers*
            #:*default-config*
            #:*matrix-versions*
            #:smoke-test

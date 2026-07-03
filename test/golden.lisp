@@ -13,7 +13,8 @@
 
 (defpackage :lovemotion-test
   (:use :cl)
-  (:export #:golden-test #:+golden-payload+ #:+golden-payload-mixed+))
+  (:export #:golden-test #:+golden-payload+ #:+golden-payload-mixed+
+           #:+golden-payload-dealbreakers+))
 
 (in-package :lovemotion-test)
 
@@ -58,6 +59,30 @@ twins — in the pool, matches no one), a :low-band finding outranking
 its own :maintenance finding on the same axis (humor 0.25), and an
 :attention finding sorting before a :watch.")
 
+(defparameter +golden-payload-dealbreakers+
+  '(:contract-version 1
+    :run-id "run-local-dealbreakers-0"
+    :matrix-versions (:conflict-style 0 :attachment 0)
+    :pool-size 4
+    :matches
+    ((:twin-a "tw_india" :twin-b "tw_kilo" :score 0.9625
+      :findings
+      ((:axis :attachment :code :maintenance :detail 0.9 :severity :watch)
+       (:axis :conflict-style :code :maintenance :detail 0.9
+        :severity :watch)))
+     (:twin-a "tw_hotel" :twin-b "tw_juliet" :score 0.9625
+      :findings
+      ((:axis :attachment :code :maintenance :detail 0.9 :severity :watch)
+       (:axis :conflict-style :code :maintenance :detail 0.9
+        :severity :watch)))))
+  "Blessed 2026-07-03. Stage-2 coverage: all four twins share identical
+scoring axes (surviving pairs composite to 7.7/8 = 0.9625), so the only
+signal is which pairs exist. Four of six pairs veto — hotel x india and
+hotel x kilo and india x juliet on substance use exceeding a stated
+boundary (three distinct rank configurations), juliet x kilo on a
+sexual requirement hitting a hard limit. Missing dealbreaker data never
+vetoes: hotel and india carry no sexual axes at all yet match freely.")
+
 (defun first-difference (a b &optional (path '()))
   "Walk two trees; return the path and differing leaves, or NIL if equal."
   (cond ((equal a b) nil)
@@ -85,5 +110,10 @@ its own :maintenance finding on the same axis (humor 0.25), and an
                              (lovemotion:run-matching
                               lovemotion:*fixture-twins-mixed*
                               :run-id "run-local-mixed-0")
-                             +golden-payload-mixed+)))
-    (and base mixed)))
+                             +golden-payload-mixed+))
+        (dealbreakers (check-golden "dealbreakers"
+                                    (lovemotion:run-matching
+                                     lovemotion:*fixture-twins-dealbreakers*
+                                     :run-id "run-local-dealbreakers-0")
+                                    +golden-payload-dealbreakers+)))
+    (and base mixed dealbreakers)))

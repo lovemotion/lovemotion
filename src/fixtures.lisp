@@ -124,6 +124,46 @@ mixed provenance. CONFIDENCE has no default on purpose."
                       '(:family-plans :no :confidence 1.0
                         :provenance :self-reported))))
 
+(defun dealbreaker-fixture (id &rest dealbreaker-specs)
+  "Identical scoring axes across all dealbreaker twins — every surviving
+pair composites to the same score — so the ONLY thing this fixture set
+tests is stage 2. Sexual tags are deliberately meaningless (:x :y):
+the engine does set math; HeyU owns what tags mean."
+  (apply #'fixture-twin id
+         (append dealbreaker-specs
+                 '(:work-ethic 0.90
+                   :chronotype 0.50
+                   :home-vs-outside 0.50
+                   :conflict-style :calm-dissect
+                   :attachment :secure
+                   :ambition 0.80
+                   :humor (:dry)
+                   :curiosity 0.80))))
+
+(defparameter *fixture-twins-dealbreakers*
+  (list
+   (dealbreaker-fixture "tw_hotel"
+                        :substance-use :regular
+                        :substance-boundary :no-limit)
+   (dealbreaker-fixture "tw_india"
+                        :substance-use :none
+                        :substance-boundary :none-acceptable)
+   (dealbreaker-fixture "tw_juliet"
+                        :substance-use :social
+                        :substance-boundary :no-limit
+                        :sexual-requirements '(:x))
+   (dealbreaker-fixture "tw_kilo"
+                        :substance-use :none
+                        :substance-boundary :social-ok
+                        :sexual-limits '(:x :y)))
+  "Six pairs, four vetoes, two matches:
+hotel x india  VETO — regular use vs none-acceptable boundary
+hotel x kilo   VETO — regular use vs social-ok boundary
+india x juliet VETO — social use vs none-acceptable boundary
+juliet x kilo  VETO — requirement :x on kilo's hard-limit list
+hotel x juliet MATCH, india x kilo MATCH — identical scoring axes,
+both composite to 7.7/8 = 0.9625.")
+
 (defun smoke-test ()
   "Run the fixtures through the whole pipeline and print the payload.
 Expected: pool-size 2 (charlie gated), one match (alpha x bravo),

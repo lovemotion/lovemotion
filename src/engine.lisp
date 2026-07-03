@@ -150,6 +150,33 @@
   (let ((av (axis twin axis-id)))
     (and av (axis-value-value av))))
 
+(defparameter *substance-use-order*
+  '(:none :social :regular)
+  "Ordered by intensity. A boundary admits use up to a rank (below).")
+
+(defparameter *substance-boundary-rank*
+  '((:none-acceptable . 0)                 ; partner must be :none
+    (:social-ok       . 1)                 ; up to :social
+    (:no-limit        . 2))                ; anything
+  "Max acceptable *substance-use* rank per boundary value.")
+
+(defun substance-clash-p (user boundary-holder)
+  "Does USER's :substance-use exceed BOUNDARY-HOLDER's stated boundary?
+Missing data on either side never dealbreaks."
+  (let ((use (axis-val user :substance-use))
+        (boundary (axis-val boundary-holder :substance-boundary)))
+    (and use boundary
+         (> (position use *substance-use-order*)
+            (cdr (assoc boundary *substance-boundary-rank*))))))
+
+(defun sexual-limit-clash-p (requirer limiter)
+  "Does REQUIRER need something on LIMITER's hard-limit list? Tags are
+opaque to the engine — HeyU owns the vocabulary; this is set math only."
+  (let ((requirements (axis-val requirer :sexual-requirements))
+        (limits (axis-val limiter :sexual-limits)))
+    (and requirements limits
+         (intersection requirements limits))))
+
 (defparameter *dealbreakers*
   (list
    ;; Family plans: hard yes vs hard no. :open collides with neither.
@@ -162,9 +189,13 @@
    ;; Pet allergy vs must-have-pet, both directions.
    (lambda (a b)
      (or (and (axis-val a :pet-allergy) (axis-val b :must-have-pet))
-         (and (axis-val b :pet-allergy) (axis-val a :must-have-pet)))))
-  ;; TODO: substance boundaries, sexual hard limits — same shape.
-  )
+         (and (axis-val b :pet-allergy) (axis-val a :must-have-pet))))
+   ;; Substance use vs stated boundary, both directions.
+   (lambda (a b)
+     (or (substance-clash-p a b) (substance-clash-p b a)))
+   ;; Sexual requirements vs hard limits, both directions.
+   (lambda (a b)
+     (or (sexual-limit-clash-p a b) (sexual-limit-clash-p b a)))))
 
 (defun pair-compatible-p (a b)
   (notany (lambda (pred) (funcall pred a b)) *dealbreakers*))
