@@ -30,10 +30,21 @@ from the ground up on 2026-07-01/02.
   payload on dev DB `lovemotion_v0` (`(asdf:test-system :lovemotion/db-test)`
   — DESTRUCTIVE truncate, dev/test DB only; needs LM_DB_PASS)
 
+- **Second golden payload** (mixed-confidence): fixtures delta/echo/
+  foxtrot/golf cover confidence-discounted weights, :unassessed
+  exclusion, dealbreaker veto, :low-band outranking :maintenance —
+  blessed in `test/golden.lisp`, runs in the same
+  `(asdf:test-system :lovemotion)`
+- **Courier serialization** (`src/courier.lisp`, `:lovemotion/courier`):
+  payload → MessagePack (maps with string keys mirroring the JSONB
+  shape, float32 scores round-trip exactly; golden payload = 367 bytes);
+  `write-payload-file` for local bytes. Round-trip test field-by-field
+  against golden values (`(asdf:test-system :lovemotion/courier)`)
+
 ## Next (owner-approved order — see Handoff.md)
 
-4. **Courier adapter** (DO Spaces) — MessagePack serialization; transport
-   deliberately last
+4. **Courier adapter, second half** — DO Spaces transport (needs bucket +
+   credentials + naming/handshake convention agreed with HeyU)
 5. v2 pile (do not build now): hysteresis re-admit, Life Force composite,
    directional curiosity, `:cross` axis, axis-pair findings
 

@@ -19,10 +19,13 @@
            #:eligibility
            #:score-pair
            #:fixture-twin
+           #:fixture-twin-full
            #:*fixture-twins*
+           #:*fixture-twins-mixed*
            #:*default-config*
            #:*matrix-versions*
            #:smoke-test
+           #:smoke-test-mixed
            ;; Domain structs — for adapters constructing twins from storage.
            #:twin
            #:make-twin

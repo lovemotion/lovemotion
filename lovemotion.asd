@@ -26,6 +26,22 @@
              (unless (symbol-call :lovemotion-test :golden-test)
                (error "GOLDEN-TEST-FAILED — engine payload no longer matches the blessed payload in test/golden.lisp"))))
 
+(defsystem "lovemotion/courier"
+  :description "Payload serialization for the Spaces courier (MessagePack). Transport deliberately not here yet."
+  :depends-on ("lovemotion" "cl-messagepack")
+  :components ((:module "src"
+                :components ((:file "courier"))))
+  :in-order-to ((test-op (test-op "lovemotion/courier-test"))))
+
+(defsystem "lovemotion/courier-test"
+  :description "Golden payload through MessagePack and back, field-by-field."
+  :depends-on ("lovemotion/courier")
+  :components ((:module "test"
+                :components ((:file "courier-roundtrip"))))
+  :perform (test-op (o c)
+             (unless (symbol-call :lovemotion.courier-test :courier-roundtrip-test)
+               (error "COURIER-ROUNDTRIP-TEST failed"))))
+
 (defsystem "lovemotion/db"
   :description "Postgres adapter: fetch/persist seams around the pure engine."
   :depends-on ("lovemotion" "postmodern" "jonathan")
