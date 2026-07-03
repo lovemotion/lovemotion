@@ -25,3 +25,18 @@
   :perform (test-op (o c)
              (unless (symbol-call :lovemotion-test :golden-test)
                (error "GOLDEN-TEST-FAILED — engine payload no longer matches the blessed payload in test/golden.lisp"))))
+
+(defsystem "lovemotion/db"
+  :description "Postgres adapter: fetch/persist seams around the pure engine."
+  :depends-on ("lovemotion" "postmodern" "jonathan")
+  :components ((:module "src"
+                :components ((:file "db")))))
+
+(defsystem "lovemotion/db-test"
+  :description "Round-trip integration test — needs a live lovemotion_v0 database (scripts/schema.sql + seed-v0.sql applied). Not part of plain test-op; run explicitly."
+  :depends-on ("lovemotion/db" "lovemotion/test")
+  :components ((:module "test"
+                :components ((:file "db-roundtrip"))))
+  :perform (test-op (o c)
+             (unless (symbol-call :lovemotion.db-test :db-roundtrip-test)
+               (error "DB-ROUNDTRIP-TEST failed"))))

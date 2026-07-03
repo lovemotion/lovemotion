@@ -1,5 +1,5 @@
 # LoveMotion Dev Status
-*Last updated: 2026-07-02*
+*Last updated: 2026-07-03*
 
 ## Where We Are
 
@@ -20,12 +20,18 @@ from the ground up on 2026-07-01/02.
   with plain `equal`; verified it fails (exit 1, tree diff) on behavior
   change and passes (exit 0) intact
 - `FINDINGS.md` — finding-code vocabulary shared with HeyU
+- **Postgres adapter** (`src/db.lisp`, systems `:lovemotion/db` +
+  `:lovemotion/db-test`): schema + seed in `scripts/`, append-only
+  `axis_values` with typed-value trio, as-of `DISTINCT ON` fetch (coerces
+  NUMERIC → single-float so DB runs are bit-identical to memory runs),
+  `run_twins` snapshot, results writer, matrix-version tripwire, all in
+  one REPEATABLE READ transaction; `replay-run` recomputes a historical
+  run read-only. Round-trip integration test passes against the golden
+  payload on dev DB `lovemotion_v0` (`(asdf:test-system :lovemotion/db-test)`
+  — DESTRUCTIVE truncate, dev/test DB only; needs LM_DB_PASS)
 
 ## Next (owner-approved order — see Handoff.md)
 
-3. **Postgres adapter** — DDL, as-of `DISTINCT ON` fetch, `run_twins`
-   insert, results writer, one REPEATABLE READ transaction around
-   snapshot+read
 4. **Courier adapter** (DO Spaces) — MessagePack serialization; transport
    deliberately last
 5. v2 pile (do not build now): hysteresis re-admit, Life Force composite,

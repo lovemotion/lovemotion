@@ -21,4 +21,12 @@
            #:fixture-twin
            #:*fixture-twins*
            #:*default-config*
-           #:smoke-test))
+           #:*matrix-versions*
+           #:smoke-test
+           ;; Domain structs — for adapters constructing twins from storage.
+           #:twin
+           #:make-twin
+           #:twin-id
+           #:twin-axis-values
+           #:axis-value
+           #:make-axis-value))

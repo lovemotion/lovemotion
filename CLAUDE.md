@@ -84,8 +84,7 @@ Prolog/rules engine; embedding categoricals; pgvector in the MVP loop; BEFORE IN
 The previous architecture (13-rule engine, pgvector ANN, hunchentoot HTTP API) lives on branch `archive/rules-engine` and still runs on the droplet (systemd `lovemotion`, nginx, lovemotion.io TLS) until v0's adapters replace it. Don't build on it.
 
 ## Next Actions (owner-approved order)
-1. ~~Golden test~~ ✓  2. ~~ASDF/repo structure + FINDINGS.md~~ ✓
-3. Postgres adapter: DDL, as-of DISTINCT ON fetch, run_twins insert, results writer, REPEATABLE READ
+1. ~~Golden test~~ ✓  2. ~~ASDF/repo structure + FINDINGS.md~~ ✓  3. ~~Postgres adapter~~ ✓ (`src/db.lisp`; dev DB `lovemotion_v0`; integration test `(asdf:test-system :lovemotion/db-test)` — DESTRUCTIVE truncate, needs LM_DB_PASS)
 4. Courier adapter (Spaces): MessagePack serialization, transport deliberately last
 5. v2 pile (do NOT build now): hysteresis re-admit, Life Force composite, directional curiosity, `:cross` axis, axis-pair findings
 
