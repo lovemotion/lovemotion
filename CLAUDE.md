@@ -28,9 +28,13 @@ src/
   engine.lisp        — the whole pipeline: structs, config, axes, matrices,
                        gate, dealbreakers, scoring, findings, run-matching
   fixtures.lisp      — the golden twins (alpha/bravo/charlie), smoke-test
+  courier.lisp       — MessagePack codecs: payload out, twin batches in
+  transport.lisp     — courier transport: local dir + DO Spaces (zs3 shim)
+  db.lisp            — Postgres adapter under the fetch/persist seams
 test/
-  golden.lisp        — blessed payload + golden-test (plain equal, no framework)
+  golden.lisp        — blessed payloads + golden-test (plain equal, no framework)
 FINDINGS.md          — finding-code vocabulary shared with HeyU
+COURIER.md           — courier convention: bucket, keys, handshake, wire shapes
 Handoff.md           — design handoff: rationale, schema design, rejected list
 ```
 
@@ -95,7 +99,7 @@ The previous architecture (13-rule engine, pgvector ANN, hunchentoot HTTP API) l
 
 ## Next Actions (owner-approved order)
 1. ~~Golden test~~ ✓ (now two blessed payloads: base + mixed-confidence)  2. ~~ASDF/repo structure + FINDINGS.md~~ ✓  3. ~~Postgres adapter~~ ✓ (`src/db.lisp`; dev DB `lovemotion_v0`; integration test `(asdf:test-system :lovemotion/db-test)` — DESTRUCTIVE truncate, needs LM_DB_PASS)
-4. Courier adapter (Spaces): ~~MessagePack serialization~~ ✓ (`src/courier.lisp`); transport still TODO — needs bucket, credentials, and a naming/handshake convention agreed with HeyU
+4. Courier adapter (Spaces): ~~MessagePack serialization~~ ✓ (`src/courier.lisp`, both directions); ~~transport code~~ ✓ (`src/transport.lisp`, `COURIER.md` convention; test `(asdf:test-system :lovemotion/transport)`). Go-live still needs: Danny's veto pass on `COURIER.md`, HeyU agreement + Elixir encoder, bucket + scoped keys, batch entrypoint wiring (incl. consumer cursor row in Postgres)
 5. v2 pile (do NOT build now): hysteresis re-admit, Life Force composite, directional curiosity, `:cross` axis, axis-pair findings
 
 ## Working Style

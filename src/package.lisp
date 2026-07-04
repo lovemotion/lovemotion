@@ -27,10 +27,16 @@
            #:*matrix-versions*
            #:smoke-test
            #:smoke-test-mixed
-           ;; Domain structs — for adapters constructing twins from storage.
+           ;; Domain structs — for adapters constructing twins from storage
+           ;; (constructors) and serializing them back out (readers).
            #:twin
            #:make-twin
            #:twin-id
            #:twin-axis-values
            #:axis-value
-           #:make-axis-value))
+           #:make-axis-value
+           #:axis-value-axis-id
+           #:axis-value-value
+           #:axis-value-confidence
+           #:axis-value-provenance
+           #:axis-value-observed-at))

@@ -56,3 +56,19 @@
   :perform (test-op (o c)
              (unless (symbol-call :lovemotion.db-test :db-roundtrip-test)
                (error "DB-ROUNDTRIP-TEST failed"))))
+
+(defsystem "lovemotion/transport"
+  :description "Courier transport (COURIER.md): local directory + DO Spaces (zs3) behind one protocol."
+  :depends-on ("lovemotion/courier" "zs3" "ironclad" "uiop")
+  :components ((:module "src"
+                :components ((:file "transport"))))
+  :in-order-to ((test-op (test-op "lovemotion/transport-test"))))
+
+(defsystem "lovemotion/transport-test"
+  :description "Full courier loop through the local transport: twin batch in -> engine -> golden -> matches out. Plus pure key-logic checks."
+  :depends-on ("lovemotion/transport" "lovemotion/test")
+  :components ((:module "test"
+                :components ((:file "transport-roundtrip"))))
+  :perform (test-op (o c)
+             (unless (symbol-call :lovemotion.transport-test :transport-roundtrip-test)
+               (error "TRANSPORT-ROUNDTRIP-TEST failed"))))

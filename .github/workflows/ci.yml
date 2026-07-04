@@ -72,6 +72,13 @@ jobs:
             --eval '(ql:quickload :lovemotion/courier-test :silent t)' \
             --eval '(asdf:test-system :lovemotion/courier)'
 
+      - name: Transport round-trip (local transport, full courier loop)
+        run: |
+          sbcl --non-interactive --load ~/quicklisp/setup.lisp \
+            --eval '(push (uiop:getcwd) asdf:*central-registry*)' \
+            --eval '(ql:quickload :lovemotion/transport-test :silent t)' \
+            --eval '(asdf:test-system :lovemotion/transport)'
+
       - name: DB round-trip
         run: |
           sbcl --non-interactive --load ~/quicklisp/setup.lisp \

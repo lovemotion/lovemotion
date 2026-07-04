@@ -1,5 +1,5 @@
 # LoveMotion Dev Status
-*Last updated: 2026-07-03*
+*Last updated: 2026-07-04*
 
 ## Where We Are
 
@@ -51,10 +51,26 @@ from the ground up on 2026-07-01/02.
   DB round-trip on every push/PR, Postgres 18 service container, cached
   Quicklisp. First run green.
 
+- **Courier transport** (`src/transport.lisp`, `:lovemotion/transport` +
+  test system): implements `COURIER.md` — the proposed naming/handshake
+  convention (v1 strawman, **awaiting Danny's veto pass**). Pure key
+  logic (lexicographic = chronological, cursor-not-ack handshake), two
+  transports behind one protocol: local directory (fully tested) and DO
+  Spaces via zs3 (thin shim, live once bucket + creds exist). Inbound
+  twin-batch codec added to `src/courier.lisp` (`twins->bytes` /
+  `bytes->twins`; confidence REQUIRED on the wire — decode error, never
+  a default). Round-trip test runs the full courier loop against all
+  three blessed payloads bit-for-bit
+  (`(asdf:test-system :lovemotion/transport)`), in CI.
+
 ## Next (owner-approved order — see Handoff.md)
 
-4. **Courier adapter, second half** — DO Spaces transport (needs bucket +
-   credentials + naming/handshake convention agreed with HeyU)
+4. **Courier go-live** — the code is done and tested; remaining is all
+   coordination: (a) Danny's veto pass over `COURIER.md`, (b) HeyU's
+   agreement to the convention + its Elixir encoder, (c) bucket +
+   scoped Spaces key pairs, (d) wiring `ship-matches` /
+   `new-twin-batch-keys` into the actual off-hours batch entrypoint
+   (which also needs the consumer cursor row in Postgres).
 5. v2 pile (do not build now): hysteresis re-admit, Life Force composite,
    directional curiosity, `:cross` axis, axis-pair findings
 
