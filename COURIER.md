@@ -152,7 +152,8 @@ still before it; it is never skipped silently.
    its Elixir encoder, and its own scoped key.
 3. ~~The bucket~~ ✓ (`lovemotion-courier`, sfo3, scoped LoveMotion key,
    live-tested 2026-07-10). Still open: the 30-day lifecycle rule.
-4. Schedule `courier-batch-run` on the droplet (cron/systemd timer).
+4. ~~Schedule `courier-batch-run` on the droplet~~ ✓ (systemd timer,
+   nightly 03:15 UTC; `deploy/lovemotion-batch.{service,timer}`).
 
 ## zs3-vs-Spaces notes (learned the hard way, 2026-07-10)
 
