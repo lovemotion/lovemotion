@@ -33,6 +33,8 @@ src/
   db.lisp            — Postgres adapter under the fetch/persist seams
 test/
   golden.lisp        — blessed payloads + golden-test (plain equal, no framework)
+site/                — static landing page for lovemotion.io (palette +
+                       assets cut from lovemotion_art.png; self-contained)
 FINDINGS.md          — finding-code vocabulary shared with HeyU
 COURIER.md           — courier convention: bucket, keys, handshake, wire shapes
 Handoff.md           — design handoff: rationale, schema design, rejected list
