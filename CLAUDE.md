@@ -11,8 +11,8 @@ Read `Handoff.md` for the full design rationale. This file is the working summar
 ```
 twins in (courier)
   → eligibility gate         (work-ethic floor, confidence-guarded)
-  → pair dealbreaker filters (family plans, pet allergy; substances + sexual
-                              hard limits TODO, same predicate shape)
+  → pair dealbreaker filters (family plans, pet allergy, substances,
+                              sexual hard limits)
   → 7-axis scoring           (scalars, matrices, tag-set)
   → weighted composite       (confidence discounts weight: min(confA, confB))
   → findings generation      (min 1, max 4 per match — never blank)
@@ -99,7 +99,7 @@ The previous architecture (13-rule engine, pgvector ANN, hunchentoot HTTP API) l
 
 ## Next Actions (owner-approved order)
 1. ~~Golden test~~ ✓ (now two blessed payloads: base + mixed-confidence)  2. ~~ASDF/repo structure + FINDINGS.md~~ ✓  3. ~~Postgres adapter~~ ✓ (`src/db.lisp`; dev DB `lovemotion_v0`; integration test `(asdf:test-system :lovemotion/db-test)` — DESTRUCTIVE truncate, needs LM_DB_PASS)
-4. Courier adapter (Spaces): ~~MessagePack serialization~~ ✓ (`src/courier.lisp`, both directions); ~~transport code~~ ✓ (`src/transport.lisp`, `COURIER.md` convention; test `(asdf:test-system :lovemotion/transport)`). Go-live still needs: Danny's veto pass on `COURIER.md`, HeyU agreement + Elixir encoder, bucket + scoped keys, batch entrypoint wiring (incl. consumer cursor row in Postgres)
+4. Courier adapter (Spaces): ~~MessagePack serialization~~ ✓ (`src/courier.lisp`, both directions); ~~transport code~~ ✓ (`src/transport.lisp` + `src/zs3-shim.lisp`, `COURIER.md` convention; test `(asdf:test-system :lovemotion/transport)`); ~~bucket + LoveMotion key~~ ✓ (sfo3, live round-trip tested 2026-07-10; creds in gitignored `.env`, load via `set -a && source .env`). Go-live still needs: Danny's veto pass on `COURIER.md`, HeyU agreement + Elixir encoder + HeyU's scoped key, 30-day lifecycle rule on the bucket, batch entrypoint wiring (incl. consumer cursor row in Postgres)
 5. v2 pile (do NOT build now): hysteresis re-admit, Life Force composite, directional curiosity, `:cross` axis, axis-pair findings
 
 ## Working Style

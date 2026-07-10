@@ -13,3 +13,6 @@
 #.*#
 .#*
 bin/
+
+# secrets — never commit
+.env

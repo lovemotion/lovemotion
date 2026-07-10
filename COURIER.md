@@ -140,4 +140,22 @@ only, same seam discipline as the DB.
    key format, cursor-not-ack handshake, 30-day retention, twin wire
    shape — especially `kind` explicitness and booleans-as-categorical).
 2. HeyU's agreement (it writes `twins/v1/`, reads `matches/v1/`).
-3. The bucket + a scoped Spaces key pair for each side.
+3. ~~The bucket~~ ✓ (`lovemotion-courier`, sfo3) + ~~LoveMotion's key
+   pair~~ ✓ (live-tested 2026-07-10: put/get/list round-trip through
+   `spaces-transport`). Still open: HeyU's own scoped key, and the
+   30-day lifecycle rule on the bucket.
+
+## zs3-vs-Spaces notes (learned the hard way, 2026-07-10)
+
+Three DO dialect quirks, all absorbed in the adapter — `with-spaces`
+in `src/transport.lisp` (first two) and `src/zs3-shim.lisp` (third):
+
+- zs3 defaults to plain HTTP; DO 302-redirects it. HTTPS forced.
+- zs3 only paths the bucket for AWS regional endpoints; for anything
+  else the bucket must be baked into the endpoint (virtual-host
+  style) or it never reaches the wire — DO then sees a bucketless
+  request and answers `AccessDenied`.
+- DO orders `ListBucketResult` elements differently from AWS
+  (`Marker` trails `Contents`, `StorageClass` precedes `Owner`, extra
+  `<Type>`); zs3's strict binder is re-registered with the
+  differences made optional.

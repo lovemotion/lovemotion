@@ -21,8 +21,8 @@ pool-size 2 (tw_charlie gated on work ethic), one match (alpha × bravo,
 ```
 twins in (courier)
   → eligibility gate         (work-ethic floor, confidence-guarded)
-  → pair dealbreaker filters (family plans, pet allergy; substances + sexual
-                              hard limits TODO, same predicate shape)
+  → pair dealbreaker filters (family plans, pet allergy, substances,
+                              sexual hard limits)
   → 7-axis scoring           (scalars, matrices, tag-set)
   → weighted composite       (confidence discounts weight: min(confA, confB))
   → findings generation      (min 1, max 4 per match — never blank)
@@ -173,7 +173,7 @@ Critical decisions:
 
 1. Hysteresis needs prior-run state (config key reserved).
 2. :cross dispatch deliberately errors.
-3. Dealbreakers: substances + sexual hard limits TODO.
+3. ~~Dealbreakers: substances + sexual hard limits~~ done (commit 8c7bc7f).
 4. smoke-test prints; not yet a golden `equal` assertion.
 
 ## Next actions, ranked

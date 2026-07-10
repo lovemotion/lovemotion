@@ -160,9 +160,19 @@ code never sees it."
                            :secret-key (env "LM_SPACES_SECRET"))))
 
 (defmacro with-spaces ((transport) &body body)
+  ;; Two zs3-vs-Spaces impedance mismatches live here, nowhere else:
+  ;; - *use-ssl* defaults to NIL; DO 302-redirects plain HTTP, which
+  ;;   zs3 can't follow. HTTPS is mandatory, not a preference.
+  ;; - zs3 only puts the bucket in the request path when the endpoint
+  ;;   is the matching AWS regional one; any other endpoint is assumed
+  ;;   to already carry the bucket, virtual-host style. So the bucket
+  ;;   must be baked into the endpoint or it never reaches the wire.
   `(let ((zs3:*credentials* (spaces-transport-credentials ,transport))
-         (zs3:*s3-endpoint* (spaces-transport-endpoint ,transport))
-         (zs3:*s3-region* (spaces-transport-region ,transport)))
+         (zs3:*s3-endpoint* (format nil "~a.~a"
+                                    (spaces-transport-bucket ,transport)
+                                    (spaces-transport-endpoint ,transport)))
+         (zs3:*s3-region* (spaces-transport-region ,transport))
+         (zs3:*use-ssl* t))
      ,@body))
 
 (defun sha256-hex (bytes)

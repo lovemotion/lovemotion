@@ -61,7 +61,9 @@
   :description "Courier transport (COURIER.md): local directory + DO Spaces (zs3) behind one protocol."
   :depends-on ("lovemotion/courier" "zs3" "ironclad" "uiop")
   :components ((:module "src"
-                :components ((:file "transport"))))
+                :serial t
+                :components ((:file "zs3-shim")
+                             (:file "transport"))))
   :in-order-to ((test-op (test-op "lovemotion/transport-test"))))
 
 (defsystem "lovemotion/transport-test"
