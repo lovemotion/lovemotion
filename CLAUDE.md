@@ -97,7 +97,12 @@ Prolog/rules engine; embedding categoricals; pgvector in the MVP loop; BEFORE IN
 - `runs` carries `config_snapshot` + `matrix_versions` JSONB; `run_twins` freezes the pool — every historical run bit-for-bit replayable.
 
 ## History
-The previous architecture (13-rule engine, pgvector ANN, hunchentoot HTTP API) lives on branch `archive/rules-engine` and still runs on the droplet (systemd `lovemotion`, nginx, lovemotion.io TLS) until v0's adapters replace it. Don't build on it. Since 2026-07-10 nginx serves `site/` at `/` and proxies only `/v1/*` + `/admin/*` to the old API (:8080); redeploy with `deploy/deploy-site.sh` (SSH: `danny@lovemotion.io`, key `~/.ssh/lovemotion_droplet`, passwordless sudo).
+The previous architecture (13-rule engine, pgvector ANN, hunchentoot HTTP API) lives on branch `archive/rules-engine` and still runs on the droplet (systemd `lovemotion`, nginx, lovemotion.io TLS) until v0's adapters replace it. Don't build on it. Since 2026-07-10 nginx serves `site/` at `/` and proxies only `/v1/*` + `/admin/*` to the old API (:8080); redeploy with `deploy/deploy-site.sh`.
+
+**This working directory IS the production droplet** (`ubuntu-s-1vcpu-1gb-lovemotion-01`, lovemotion.io — confirmed by machine-id 2026-07-10). Dev and prod are one box: `lovemotion_v0` here is the live DB the nightly courier batch feeds. Consequences:
+- **Never run `lovemotion/db-test` or `lovemotion/batch-test` here** — they TRUNCATE the production DB. CI runs them against its own throwaway Postgres; that is the only place they run.
+- `deploy/deploy-site.sh` and the `ssh lovemotion.io` in it are this box addressing itself (key `~/.ssh/lovemotion_droplet`, passwordless sudo) — harmless, and keeps working if dev ever moves off-box.
+- Mind the 1 GB RAM: heavy SBCL compiles share the box with nginx, Postgres, the old API, and the 03:15 UTC batch timer.
 
 ## Next Actions (owner-approved order)
 1. ~~Golden test~~ ✓ (now two blessed payloads: base + mixed-confidence)  2. ~~ASDF/repo structure + FINDINGS.md~~ ✓  3. ~~Postgres adapter~~ ✓ (`src/db.lisp`; dev DB `lovemotion_v0`; integration test `(asdf:test-system :lovemotion/db-test)` — DESTRUCTIVE truncate, needs LM_DB_PASS)
