@@ -97,7 +97,7 @@ Prolog/rules engine; embedding categoricals; pgvector in the MVP loop; BEFORE IN
 - `runs` carries `config_snapshot` + `matrix_versions` JSONB; `run_twins` freezes the pool — every historical run bit-for-bit replayable.
 
 ## History
-The previous architecture (13-rule engine, pgvector ANN, hunchentoot HTTP API) lives on branch `archive/rules-engine` and still runs on the droplet (systemd `lovemotion`, nginx, lovemotion.io TLS) until v0's adapters replace it. Don't build on it.
+The previous architecture (13-rule engine, pgvector ANN, hunchentoot HTTP API) lives on branch `archive/rules-engine` and still runs on the droplet (systemd `lovemotion`, nginx, lovemotion.io TLS) until v0's adapters replace it. Don't build on it. Since 2026-07-10 nginx serves `site/` at `/` and proxies only `/v1/*` + `/admin/*` to the old API (:8080); redeploy with `deploy/deploy-site.sh` (SSH: `danny@lovemotion.io`, key `~/.ssh/lovemotion_droplet`, passwordless sudo).
 
 ## Next Actions (owner-approved order)
 1. ~~Golden test~~ ✓ (now two blessed payloads: base + mixed-confidence)  2. ~~ASDF/repo structure + FINDINGS.md~~ ✓  3. ~~Postgres adapter~~ ✓ (`src/db.lisp`; dev DB `lovemotion_v0`; integration test `(asdf:test-system :lovemotion/db-test)` — DESTRUCTIVE truncate, needs LM_DB_PASS)
