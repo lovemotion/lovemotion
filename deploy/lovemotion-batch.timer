@@ -1,0 +1,16 @@
+# /etc/systemd/system/lovemotion-batch.timer
+#
+# Off-hours courier batch, nightly. 03:15 UTC matches the COURIER.md
+# convention examples (HeyU drops twin batches ~02:00Z; matches ship
+# ~03:15Z). Persistent=true replays a missed run after downtime.
+
+[Unit]
+Description=Nightly LoveMotion courier batch (off-hours, UTC)
+
+[Timer]
+OnCalendar=*-*-* 03:15:00 UTC
+RandomizedDelaySec=5m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

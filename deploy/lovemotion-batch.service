@@ -1,0 +1,21 @@
+# /etc/systemd/system/lovemotion-batch.service
+#
+# One-shot courier batch run (COURIER.md): drain twins/v1 into
+# lovemotion_v0, run matching if anything new arrived, ship matches/v1.
+# Scheduled by lovemotion-batch.timer; run on demand with
+#   systemctl start lovemotion-batch.service
+
+[Unit]
+Description=LoveMotion courier batch: drain twins, match, ship
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=danny
+EnvironmentFile=/etc/lovemotion/batch.env
+Environment=HOME=/home/danny
+WorkingDirectory=/home/danny/development/lovemotion
+ExecStart=/home/danny/development/lovemotion/deploy/courier-batch-run.sh
+TimeoutStartSec=30min
+Nice=10
