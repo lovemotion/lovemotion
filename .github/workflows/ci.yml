@@ -85,3 +85,10 @@ jobs:
             --eval '(push (uiop:getcwd) asdf:*central-registry*)' \
             --eval '(ql:quickload :lovemotion/db-test :silent t)' \
             --eval '(asdf:test-system :lovemotion/db-test)'
+
+      - name: Courier batch entrypoint (local transport + live DB)
+        run: |
+          sbcl --non-interactive --load ~/quicklisp/setup.lisp \
+            --eval '(push (uiop:getcwd) asdf:*central-registry*)' \
+            --eval '(ql:quickload :lovemotion/batch-test :silent t)' \
+            --eval '(asdf:test-system :lovemotion/batch-test)'

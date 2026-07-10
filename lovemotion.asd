@@ -66,6 +66,22 @@
                              (:file "transport"))))
   :in-order-to ((test-op (test-op "lovemotion/transport-test"))))
 
+(defsystem "lovemotion/batch"
+  :description "Off-hours courier entrypoint: drain twins/v1 into Postgres, run matching, ship matches/v1 (COURIER.md consumer loop)."
+  :depends-on ("lovemotion/db" "lovemotion/transport")
+  :components ((:module "src"
+                :components ((:file "batch"))))
+  :in-order-to ((test-op (test-op "lovemotion/batch-test"))))
+
+(defsystem "lovemotion/batch-test"
+  :description "Courier entrypoint against a live DB through the local transport — DESTRUCTIVE truncate (incl. courier state); run explicitly."
+  :depends-on ("lovemotion/batch" "lovemotion/test")
+  :components ((:module "test"
+                :components ((:file "batch-roundtrip"))))
+  :perform (test-op (o c)
+             (unless (symbol-call :lovemotion.batch-test :batch-roundtrip-test)
+               (error "BATCH-ROUNDTRIP-TEST failed"))))
+
 (defsystem "lovemotion/transport-test"
   :description "Full courier loop through the local transport: twin batch in -> engine -> golden -> matches out. Plus pure key-logic checks."
   :depends-on ("lovemotion/transport" "lovemotion/test")

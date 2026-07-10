@@ -91,3 +91,23 @@ CREATE TABLE match_results (
     PRIMARY KEY (run_id, twin_a, twin_b),
     CHECK (twin_a < twin_b)
 );
+
+-- Courier consumer state (COURIER.md handshake): one row per prefix this
+-- side reads, holding the last object key processed. Mutable by design —
+-- adapter state, not domain data; the append-only rule is axis_values'.
+-- The row is created lazily by the first drain (upsert), no seed needed.
+CREATE TABLE courier_cursor (
+    prefix     TEXT PRIMARY KEY,
+    last_key   TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Idempotency by batch-id (COURIER.md): the id inside the payload is the
+-- dedup key, so a re-uploaded or double-listed object is a no-op because
+-- its batch_id is already recorded here.
+CREATE TABLE courier_batches (
+    batch_id     BIGINT PRIMARY KEY,
+    object_key   TEXT NOT NULL,
+    generated_at TIMESTAMPTZ NOT NULL,
+    processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

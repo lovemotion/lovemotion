@@ -1,10 +1,10 @@
 # COURIER.md — the Spaces courier convention (v1 strawman)
 
-Status: **proposed 2026-07-04, awaiting Danny's veto pass.** Everything
-here is concrete so it can be vetoed at the ordinal level; nothing is
-agreed with HeyU yet. The Lisp side (`src/transport.lisp`) implements
-exactly this document — when a line here changes, that file changes
-with it.
+Status: **approved by Danny 2026-07-10** (veto pass, all keep: prefix
+layout, key format, cursor-not-ack handshake, 30-day retention, twin
+wire shape). Not yet agreed with HeyU. The Lisp side
+(`src/transport.lisp`) implements exactly this document — when a line
+here changes, that file changes with it.
 
 The courier is the only thing that crosses the HeyU/LoveMotion boundary.
 It moves opaque bytes on a schedule; it knows nothing about matching.
@@ -134,16 +134,25 @@ LM_SPACES_SECRET     secret key
 Domain code never sees these — they configure the transport adapter
 only, same seam discipline as the DB.
 
+## Entrypoint (LoveMotion side)
+
+`(lovemotion.batch:courier-batch-run)` is the whole off-hours batch:
+drain `twins/v1/` (cursor in `courier_cursor`, idempotency by batch-id
+in `courier_batches`, one transaction per batch), then — only if
+anything new arrived, or `:force-run t` — run matching and ship to
+`matches/v1/`. A poison batch stops the drain loudly with the cursor
+still before it; it is never skipped silently.
+
 ## Still needed before go-live
 
-1. Danny's veto pass over this document (ordinal calls: prefix layout,
-   key format, cursor-not-ack handshake, 30-day retention, twin wire
-   shape — especially `kind` explicitness and booleans-as-categorical).
-2. HeyU's agreement (it writes `twins/v1/`, reads `matches/v1/`).
-3. ~~The bucket~~ ✓ (`lovemotion-courier`, sfo3) + ~~LoveMotion's key
-   pair~~ ✓ (live-tested 2026-07-10: put/get/list round-trip through
-   `spaces-transport`). Still open: HeyU's own scoped key, and the
-   30-day lifecycle rule on the bucket.
+1. ~~Danny's veto pass over this document~~ ✓ (2026-07-10, all keep:
+   prefix layout, key format, cursor-not-ack handshake, 30-day
+   retention, twin wire shape).
+2. HeyU's agreement (it writes `twins/v1/`, reads `matches/v1/`),
+   its Elixir encoder, and its own scoped key.
+3. ~~The bucket~~ ✓ (`lovemotion-courier`, sfo3, scoped LoveMotion key,
+   live-tested 2026-07-10). Still open: the 30-day lifecycle rule.
+4. Schedule `courier-batch-run` on the droplet (cron/systemd timer).
 
 ## zs3-vs-Spaces notes (learned the hard way, 2026-07-10)
 
