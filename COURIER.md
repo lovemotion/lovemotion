@@ -151,15 +151,13 @@ still before it; it is never skipped silently.
 2. HeyU's agreement (it writes `twins/v1/`, reads `matches/v1/`),
    its Elixir encoder, and its own scoped key.
 3. ~~The bucket~~ ✓ (`lovemotion-courier`, sfo3, scoped LoveMotion key,
-   live-tested 2026-07-10). Still open: the 30-day lifecycle rule —
-   **blocked on credentials, not code** (tried 2026-07-11): DO's
-   bucket-scoped Spaces keys can't GET/PUT bucket lifecycle config
-   (AccessDenied; object ops fine), and the DO control panel has no
-   lifecycle UI. Needs a one-shot run of
-   `deploy/set-lifecycle.lisp` (zs3 `bucket-lifecycle`, rule
-   `expire-30d`, prefix "", 30 days) with a **full-access** Spaces
-   key in `LM_SPACES_KEY/SECRET` — the scoped key stays the runtime
-   credential.
+   live-tested 2026-07-10). ~~30-day lifecycle rule~~ ✓ (2026-07-11:
+   rule `expire-30d`, whole bucket, verified by read-back). Note for
+   the future: DO's bucket-scoped Spaces keys get AccessDenied on
+   lifecycle config (object ops fine) and the control panel has no
+   lifecycle UI — changing the rule means re-running
+   `deploy/set-lifecycle.lisp` with a temporary **full-access** key,
+   revoked after.
 4. ~~Schedule `courier-batch-run` on the droplet~~ ✓ (systemd timer,
    nightly 03:15 UTC; `deploy/lovemotion-batch.{service,timer}`).
 
