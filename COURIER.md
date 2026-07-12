@@ -2,7 +2,7 @@
 
 Status: **approved by Danny 2026-07-10** (veto pass, all keep: prefix
 layout, key format, cursor-not-ack handshake, 30-day retention, twin
-wire shape). Not yet agreed with HeyU. The Lisp side
+wire shape); agreed with HeyU 2026-07-11. The Lisp side
 (`src/transport.lisp`) implements exactly this document — when a line
 here changes, that file changes with it.
 
@@ -35,16 +35,20 @@ instinct as the matrices.
 ## Key naming
 
 ```
-matches/v1/20260704T031500Z-run-000042.msgpack
+matches/v1/20260704T031500Z-347cbc8e-53a9-421a-b7e9-515c101e48c3.msgpack
 twins/v1/20260704T020000Z-batch-000117.msgpack
 ```
 
-- UTC timestamp, basic ISO-8601 (`YYYYMMDDTHHMMSSZ`), then the id
-  zero-padded to 6. **Lexicographic order = chronological order** —
-  that single property is what the whole handshake rides on.
-- The id is the producer's: `runs.id` for matches, HeyU's batch
-  sequence for twins. Ids are for idempotency; timestamps are for
-  ordering and human eyes.
+- UTC timestamp, basic ISO-8601 (`YYYYMMDDTHHMMSSZ`), then the
+  producer's id. Integer ids are slugged and zero-padded to 6
+  (`batch-000117`); string ids pass through as-is. **Lexicographic
+  order = chronological order** — that single property is what the
+  whole handshake rides on, and the timestamp prefix carries it
+  regardless of id shape.
+- The id is the producer's: `runs.run_id` for matches — a **UUID
+  string**, so match keys end in the bare UUID — and HeyU's integer
+  batch sequence for twins. Ids are for idempotency; timestamps are
+  for ordering and human eyes.
 
 ## Handshake (there isn't one, on purpose)
 
@@ -84,7 +88,9 @@ Both directions are MessagePack maps with downcased string keys.
 ### matches (already shipping — `src/courier.lisp`, contract v1)
 
 ```
-{ "contract-version": 1, "run-id": <int>,
+{ "contract-version": 1, "run-id": str,   # UUID from runs.run_id — NOT an int
+                                          # (doc bug fixed 2026-07-12; the code
+                                          # never shipped anything else)
   "matrix-versions": {"conflict-style": <int>, "attachment": <int>},
   "pool-size": <int>,
   "matches": [ { "twin-a": "tw_...", "twin-b": "tw_...",
