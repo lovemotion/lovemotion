@@ -16,3 +16,6 @@ bin/
 
 # secrets — never commit
 .env
+
+# ad-hoc DB dumps (fixture-only, but keep them out of history)
+backups/
